@@ -10,6 +10,7 @@ from singer import Transformer, utils
 import pytz
 import backoff
 from strict_rfc3339 import rfc3339_to_timestamp
+import re
 
 PER_PAGE = 100
 CONFIG = {
@@ -72,18 +73,23 @@ RESOURCES = {
         'schema': load_schema('merge_requests'),
         'key_properties': ['id'],
     },
+    'merge_request_changes': {
+        'url': '/projects/{}/merge_requests/{}/changes',
+        'schema': load_schema('merge_request_changes'),
+        'key_properties': ['id', 'project_id', 'iid'],
+    },
 }
 
 
 LOGGER = singer.get_logger()
 SESSION = requests.Session()
 
-
-def get_url(entity, id):
+def get_url(entity, id, iid=''):
     if not isinstance(id, int):
-        id = id.replace("/", "%2F")
+        id = id.replace('/', '%2F')
+        iid = iid.replace('/', '%2F')
 
-    return CONFIG['api_url'] + RESOURCES[entity]['url'].format(id)
+    return CONFIG['api_url'] + RESOURCES[entity]['url'].format(id, iid)
 
 
 def get_start(entity):
@@ -147,6 +153,16 @@ def flatten_id(item, target):
         item[target + '_id'] = item.pop(target, {}).pop('id', None)
     else:
         item[target + '_id'] = None
+
+def count_change_row(row):
+    added = 0
+    deleted = 0
+    for change in row['changes']:
+        added += len([a for a in change['diff'].split('\n') if re.match('^\+', a)])
+        deleted += len([d for d in change['diff'].split('\n') if re.match('^\-', d)])
+    row['changes_added'] = added
+    row['changes_deleted'] = deleted
+    return row
 
 
 def sync_branches(project):
@@ -243,6 +259,28 @@ def sync_merge_request(project):
                 )
 
 
+def sync_merge_request_changes(project):
+    url_mr = get_url('merge_requests', project['id'])
+    for row_mr in gen_request(url_mr):
+        if row_mr['state'] == 'merged':
+            iid = row_mr['iid']
+            url = get_url('merge_request_changes', project['id'], iid)
+            with Transformer(pre_hook=format_timestamp) as transformer:
+                row = request(url).json()
+                flatten_id(row, 'author')
+                row = count_change_row(row)
+
+                transformed_row = transformer.transform(
+                    row, RESOURCES['merge_request_changes']['schema']
+                )
+                if row['updated_at'] >= get_start('project_{}'.format(project['id'])):
+                    singer.write_record(
+                        'merge_request_changes',
+                        transformed_row,
+                        time_extracted=utils.now(),
+                    )
+
+
 def sync_project(pid):
     url = get_url("projects", pid)
     data = request(url).json()
@@ -271,6 +309,7 @@ def sync_project(pid):
         sync_milestones(project)
         sync_users(project)
         sync_merge_request(project)
+        sync_merge_request_changes(project)
 
         singer.write_record("projects", project, time_extracted=time_extracted)
         utils.update_state(STATE, state_key, last_activity_at)

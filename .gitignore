@@ -96,3 +96,8 @@ ENV/
 env.sh
 config.json
 .autoenv.zsh
+
+tmp/*
+config/*
+docker-compose.yml
+Dockerfile

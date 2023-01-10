@@ -1,0 +1,51 @@
+{
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer"
+        },
+        "iid": {
+            "type": "integer"
+        },
+        "project_id": {
+            "type": "integer"
+        },
+        "author_id": {
+            "type": "integer"
+        },
+        "state": {
+            "type": "string"
+        },
+        "created_at": {
+            "anyOf": [
+                {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                {
+                    "type": "null"
+                }
+            ]
+        },
+        "updated_at": {
+            "anyOf": [
+                {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                {
+                    "type": "null"
+                }
+            ]
+        },
+        "changes_added": {
+            "type": "integer"
+        },
+        "changes_deleted": {
+            "type": "integer"
+        },
+        "overflow": {
+            "type": "boolean"
+        }
+   }
+}
