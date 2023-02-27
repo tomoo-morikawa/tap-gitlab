@@ -1,0 +1,88 @@
+{
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer"
+        },
+        "project_id": {
+            "type": "integer"
+        },
+        "merge_request_id": {
+            "type": "integer"
+        },
+        "type": {
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "null"
+                }
+            ]
+        },
+        "body": {
+            "type": "string"
+        },
+        "author_id": {
+            "type": [
+                "null",
+                "integer"
+            ]
+        },
+        "created_at": {
+            "anyOf": [
+                {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                {
+                    "type": "null"
+                }
+            ]
+        },
+        "updated_at": {
+            "anyOf": [
+                {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                {
+                    "type": "null"
+                }
+            ]
+        },
+        "system": {
+            "type": [
+                "boolean"
+            ]
+        },
+        "noteable_id": {
+            "type": [
+                "null",
+                "integer"
+            ]
+        },
+        "noteable_type": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "resolvable": {
+            "type": [
+                "boolean"
+            ]
+        },
+        "confidential": {
+            "type": [
+                "boolean"
+            ]
+        },
+        "noteable_iid": {
+            "type": [
+                "null",
+                "integer"
+            ]
+        }
+   }
+}

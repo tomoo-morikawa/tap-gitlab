@@ -78,6 +78,11 @@ RESOURCES = {
         'schema': load_schema('merge_request_changes'),
         'key_properties': ['id', 'project_id', 'iid'],
     },
+    'merge_request_notes': {
+        'url': '/projects/{}/merge_requests/{}/notes',
+        'schema': load_schema('merge_request_notes'),
+        'key_properties': ['id', 'noteable_id'],        
+    }
 }
 
 
@@ -280,6 +285,26 @@ def sync_merge_request_changes(project):
                         time_extracted=utils.now(),
                     )
 
+def sync_merge_request_notes(project):
+    url_mr = get_url('merge_requests', project['id'])
+    for row_mr in gen_request(url_mr):
+        if row_mr['state'] == 'merged':
+            iid = row_mr['iid']
+            url = get_url('merge_request_notes', project['id'], iid)
+            with Transformer(pre_hook=format_timestamp) as transformer:
+                for row in gen_request(url):
+                    flatten_id(row, 'author')
+                    row['project_id'] = project['id']
+                    row['merge_request_id'] = iid
+                    transformed_row = transformer.transform(
+                        row, RESOURCES['merge_request_notes']['schema']
+                    )
+                    if row['updated_at'] >= get_start('project_{}'.format(project['id'])):
+                        singer.write_record(
+                            'merge_request_notes',
+                            transformed_row,
+                            time_extracted=utils.now(),
+                        )
 
 def sync_project(pid):
     url = get_url("projects", pid)
@@ -310,6 +335,7 @@ def sync_project(pid):
         sync_users(project)
         sync_merge_request(project)
         sync_merge_request_changes(project)
+        sync_merge_request_notes(project)
 
         singer.write_record("projects", project, time_extracted=time_extracted)
         utils.update_state(STATE, state_key, last_activity_at)

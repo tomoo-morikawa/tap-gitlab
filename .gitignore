@@ -101,3 +101,4 @@ tmp/*
 config/*
 docker-compose.yml
 Dockerfile
+WORK.md
