@@ -130,19 +130,33 @@ def request(url, params=None):
     return resp
 
 
+# def gen_request(url):
+#     params = {'page': 1}
+#     resp = request(url, params)
+#     last_page = int(resp.headers.get('X-Total-Pages', 1))
+
+#     for row in resp.json():
+#         yield row
+
+#     for page in range(2, last_page + 1):
+#         params['page'] = page
+#         resp = request(url, params)
+#         for row in resp.json():
+#             yield row
+
 def gen_request(url):
-    params = {'page': 1}
-    resp = request(url, params)
-    last_page = int(resp.headers.get('X-Total-Pages', 1))
-
-    for row in resp.json():
-        yield row
-
-    for page in range(2, last_page + 1):
-        params['page'] = page
+    flag = False
+    page = 1
+    while flag == False:         
+        params = {'page': page}
         resp = request(url, params)
         for row in resp.json():
             yield row
+        if (page + 1 == int('0' + resp.headers.get('x-next-page'))):
+            flag = False
+        else:
+            flag = True
+        page += 1
 
 def format_timestamp(data, typ, schema):
     result = data
@@ -334,8 +348,8 @@ def sync_project(pid):
         sync_milestones(project)
         sync_users(project)
         sync_merge_request(project)
-        sync_merge_request_changes(project)
         sync_merge_request_notes(project)
+        sync_merge_request_changes(project)
 
         singer.write_record("projects", project, time_extracted=time_extracted)
         utils.update_state(STATE, state_key, last_activity_at)
